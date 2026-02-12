@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,33 +10,19 @@
   --background-end-rgb: 0, 0, 0;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
-
-/* --- SOLUCIÓN DEFINITIVA PARA FUENTES --- */
-
-/* 1. Obligamos a todos los elementos de formulario a heredar la fuente Inter del body */
-input, textarea, select, button {
+/* REGLA MAESTRA: Forzar la herencia de fuente en todo */
+input, textarea, select, button, option {
   font-family: inherit !important;
 }
 
-/* 2. Refuerzo específico para el desplegable <select> */
-/* Usamos la variable --font-inter que creaste en layout.tsx */
+/* Fix específico para que los desplegables usen la variable Inter */
 select {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif !important;
 }
 
-/* 3. Estilo para las opciones del desplegable (fondo oscuro y fuente correcta) */
+/* Estilo oscuro para las opciones del desplegable */
 option {
-  background-color: #09090b; /* zinc-950 para que no salga blanco */
-  color: #e4e4e7; /* texto claro */
+  background-color: #09090b;
+  color: #e4e4e7;
   padding: 8px;
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
 }

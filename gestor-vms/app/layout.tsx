@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-// 1. Definimos la fuente con la propiedad 'variable'
-const inter = Inter({ 
+// 1. Configuramos la fuente Inter con la variable CSS
+const sans = Inter({ 
   subsets: ["latin"],
-  variable: "--font-inter", // Esto crea una variable CSS llamada --font-inter
+  variable: "--font-sans",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Waitlist VMs",
-  description: "Waitlist VMs",
+  title: "Gestor de VMs",
+  description: "Herramienta interna de gestión",
 };
 
 export default function RootLayout({
@@ -20,8 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      {/* 2. Añadimos la variable Y las clases font-sans antialiased al body */}
-      <body className={`${inter.variable} font-sans antialiased`}>{children}</body>
+      {/* 2. Añadimos la variable AL BODY junto con font-sans */}
+      <body className={`${sans.variable} font-sans antialiased bg-black text-zinc-300`}>
+        {children}
+      </body>
     </html>
   );
 }

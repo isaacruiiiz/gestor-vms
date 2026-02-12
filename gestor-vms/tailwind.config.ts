@@ -9,8 +9,12 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // Aquí está la magia: conectamos la clase font-sans a tu variable Inter
-        sans: ["var(--font-inter)", "sans-serif"],
+        // AQUÍ ESTÁ LA MAGIA: Ponemos 'var(--font-inter)' primero
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
+      colors: {
+        background: "var(--background)",
+        foreground: "var(--foreground)",
       },
     },
   },
