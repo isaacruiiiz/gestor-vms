@@ -74,8 +74,8 @@ export default function VmCard({ vm, users, queue, onUpdate }: VmCardProps) {
   // ESTILOS DINÁMICOS
   const cardStyle = usuarioActual
     // CAMBIO AQUÍ: Forzamos border-red-600 en lugar del color del usuario
-    ? `bg-zinc-900 border-zinc-700 border-l-4 border-red-600` 
-    : 'bg-black border-zinc-800 border-l-4 border-emerald-900/50 hover:border-zinc-700';
+    ? `bg-zinc-900 border-zinc-700 border-red-600` 
+    : 'bg-black border-zinc-800 border-emerald-900/50 hover:border-zinc-700';
 
   return (
     <div className={`border rounded-lg p-4 shadow-sm transition-all ${cardStyle}`}>
