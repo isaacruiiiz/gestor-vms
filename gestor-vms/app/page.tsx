@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User, VM, QueueItem } from '@/types';
 import VmCard from '@/components/VmCard';
-import { Users, PlusCircle, RefreshCw, Server, XCircle } from 'lucide-react';
+import { Users, PlusCircle, RefreshCw, Server, Monitor, ArrowLeft, Terminal, PcCase, X } from 'lucide-react';
 
-// Colores disponibles para los usuarios
+// Colores un poco más vibrantes para resaltar sobre negro
 const COLORES = [
-  'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 
-  'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500'
+  'bg-red-600', 'bg-blue-600', 'bg-emerald-600', 'bg-amber-600', 
+  'bg-purple-600', 'bg-pink-600', 'bg-indigo-600', 'bg-teal-600'
 ];
 
 export default function Dashboard() {
@@ -17,26 +17,23 @@ export default function Dashboard() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [cargando, setCargando] = useState(true);
 
-  // Estados para los Modales
+  // Estados Modales
   const [modalUsuarioOpen, setModalUsuarioOpen] = useState(false);
   const [modalListaOpen, setModalListaOpen] = useState(false);
+  const [modalVmOpen, setModalVmOpen] = useState(false);
   
-  // Estado para formulario nuevo usuario
+  // Estado Formularios
   const [nuevoUser, setNuevoUser] = useState({ nombre: '', apellido: '', color: COLORES[0] });
+  const [nuevaVm, setNuevaVm] = useState({ nombre: '', ip: '', proyecto: '' });
+  const [modoNuevoProyecto, setModoNuevoProyecto] = useState(false);
 
-  // Función principal de carga de datos
   const cargarDatos = async () => {
-    setCargando(true);
-    
-    // 1. Cargar Usuarios
     const { data: userData } = await supabase.from('users').select('*').order('nombre');
     if (userData) setUsers(userData);
 
-    // 2. Cargar VMs
     const { data: vmData } = await supabase.from('vms').select('*').order('nombre');
     if (vmData) setVms(vmData);
 
-    // 3. Cargar Cola (con join para saber el nombre del usuario)
     const { data: queueData } = await supabase.from('queue').select('*, users(*)').order('created_at');
     if (queueData) setQueue(queueData as any);
 
@@ -45,74 +42,113 @@ export default function Dashboard() {
 
   useEffect(() => {
     cargarDatos();
-    
-    // Configurar suscripción Realtime para que se actualice solo
     const channel = supabase
       .channel('cambios-db')
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-        console.log('Cambio detectado, recargando...');
         cargarDatos();
       })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // --- ACCIONES ---
 
   const crearUsuario = async () => {
     if (!nuevoUser.nombre || !nuevoUser.apellido) return alert("Rellena nombre y apellido");
     await supabase.from('users').insert([nuevoUser]);
     setModalUsuarioOpen(false);
-    setNuevoUser({ nombre: '', apellido: '', color: COLORES[0] }); // Reset
+    setNuevoUser({ nombre: '', apellido: '', color: COLORES[0] });
     cargarDatos();
   };
 
-  // Agrupar VMs por proyecto
+  // NUEVA FUNCIÓN: Eliminar Usuario
+  const eliminarUsuario = async (id: string, nombre: string) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar a ${nombre}? Se borrará permanentemente.`)) return;
+    
+    const { error } = await supabase.from('users').delete().eq('id', id);
+    
+    if (error) {
+      alert("No se pudo eliminar. Asegúrate de que el usuario no esté ocupando una máquina actualmente.");
+      console.error(error);
+    } else {
+      cargarDatos();
+    }
+  };
+
+  const crearVm = async () => {
+    if (!nuevaVm.nombre || !nuevaVm.ip || !nuevaVm.proyecto) return alert("Rellena todos los datos de la máquina");
+    await supabase.from('vms').insert([{
+      nombre: nuevaVm.nombre,
+      ip: nuevaVm.ip,
+      proyecto: nuevaVm.proyecto,
+      usuario_actual_id: null
+    }]);
+    setModalVmOpen(false);
+    setNuevaVm({ nombre: '', ip: '', proyecto: '' });
+    cargarDatos();
+  };
+
   const proyectos = Array.from(new Set(vms.map(v => v.proyecto)));
 
+  const abrirModalVm = () => {
+    setModalVmOpen(true);
+    setModoNuevoProyecto(proyectos.length === 0);
+    setNuevaVm({ nombre: '', ip: '', proyecto: '' });
+  };
+
   return (
-    <main className="min-h-screen bg-gray-100 p-4 md:p-8 font-sans">
+    // FONDO: NEGRO PURO
+    <main className="min-h-screen bg-black p-4 md:p-8 font-sans text-zinc-300">
       
       {/* HEADER */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-4 rounded-xl shadow-sm border">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-zinc-800 pb-6">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg text-white">
-            <Server size={24} />
+          <div className="bg-zinc-900 border border-zinc-800 p-2 rounded-lg text-white">
+            <PcCase size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Gestor de VMs</h1>
-            <p className="text-sm text-gray-500">Equipo de Desarrollo</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Waitlist de VMs</h1>
           </div>
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 justify-center">
           <button 
             onClick={() => setModalListaOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded text-xs uppercase tracking-wider font-bold transition-all"
           >
-            <Users size={18} /> Ver Equipo
+            <Users size={16} /> Equipo
           </button>
+
+          <button 
+            onClick={abrirModalVm}
+            className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-blue-400 border border-zinc-800 rounded text-xs uppercase tracking-wider font-bold transition-all"
+          >
+            <Monitor size={16} /> Nueva VM
+          </button>
+
           <button 
             onClick={() => setModalUsuarioOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors"
+            className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-white hover:bg-zinc-200 text-black rounded text-xs uppercase tracking-wider font-bold transition-all shadow-[0_0_10px_rgba(255,255,255,0.2)]"
           >
-            <PlusCircle size={18} /> Soy Nuevo
+            <PlusCircle size={16} /> Nuevo Usuario
           </button>
         </div>
       </header>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* LISTA DE VMS */}
       {cargando && vms.length === 0 ? (
-         <div className="text-center py-20 text-gray-500 flex flex-col items-center">
-            <RefreshCw className="animate-spin mb-2" /> Cargando máquinas...
+         <div className="text-center py-20 text-zinc-600 flex flex-col items-center">
+            <RefreshCw className="animate-spin mb-2" />
+            <span className="text-xs font-mono">ESTABLECIENDO CONEXIÓN...</span>
          </div>
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-8">
           {proyectos.map((proyecto) => (
-            <section key={proyecto} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
-                📂 Proyecto: <span className="text-blue-600">{proyecto}</span>
+            <section key={proyecto} className="bg-zinc-950/50 p-6 rounded-xl border border-zinc-900">
+              <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <span className="text-zinc-600 font-normal">PROYECTO /</span> {proyecto}
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {vms
                   .filter(v => v.proyecto === proyecto)
                   .map(vm => (
@@ -130,79 +166,169 @@ export default function Dashboard() {
           ))}
           
           {vms.length === 0 && !cargando && (
-            <div className="text-center p-10 bg-white rounded-lg border border-dashed border-gray-300">
-              <p className="text-gray-500">No hay máquinas creadas todavía.</p>
-              <p className="text-sm text-gray-400">Añade algunas filas a la tabla 'vms' en Supabase.</p>
+            <div className="text-center p-12 bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
+              <p className="text-zinc-500 mb-2">Sistema vacío.</p>
+              <button onClick={abrirModalVm} className="text-blue-500 font-bold hover:text-blue-400 hover:underline">
+                Inicializar primera máquina
+              </button>
             </div>
           )}
         </div>
       )}
 
-      {/* MODAL: AÑADIR USUARIO */}
+      {/* --- MODALES STEALTH --- */}
+
+      {/* MODAL 1: AÑADIR USUARIO */}
       {modalUsuarioOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">👋 ¡Bienvenido al equipo!</h2>
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl p-6 w-full max-w-md animate-in fade-in zoom-in duration-200">
+            <h2 className="text-xl font-bold mb-6 text-white border-b border-zinc-800 pb-2">Nuevo Operador</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase">Nombre</label>
                 <input 
                   type="text" 
-                  className="w-full border rounded-lg p-2" 
-                  placeholder="Ej: Juan"
+                  className="w-full border border-zinc-800 bg-black text-white rounded p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" 
                   value={nuevoUser.nombre}
                   onChange={e => setNuevoUser({...nuevoUser, nombre: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
+                <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase">Apellido</label>
                 <input 
                   type="text" 
-                  className="w-full border rounded-lg p-2" 
-                  placeholder="Ej: Pérez"
+                  className="w-full border border-zinc-800 bg-black text-white rounded p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none" 
                   value={nuevoUser.apellido}
                   onChange={e => setNuevoUser({...nuevoUser, apellido: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Elige tu color</label>
+                <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase">Identificador de Color</label>
                 <div className="flex gap-2 flex-wrap">
                   {COLORES.map(color => (
                     <button
                       key={color}
                       onClick={() => setNuevoUser({...nuevoUser, color})}
-                      className={`w-8 h-8 rounded-full ${color} ${nuevoUser.color === color ? 'ring-4 ring-offset-2 ring-gray-400' : ''}`}
+                      className={`cursor-pointer w-8 h-8 rounded-full ${color} border-2 border-transparent transition-all ${nuevoUser.color === color ? 'border-white scale-110' : 'hover:scale-110'}`}
                     />
                   ))}
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-6">
-                <button onClick={() => setModalUsuarioOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                <button onClick={crearUsuario} className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Guardar</button>
+                <button onClick={() => setModalUsuarioOpen(false)} className="cursor-pointer px-4 py-2 text-zinc-400 hover:text-white text-sm font-bold">CANCELAR</button>
+                <button onClick={crearUsuario} className="cursor-pointer px-4 py-2 bg-white text-black rounded text-sm font-bold hover:bg-zinc-200">GUARDAR</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: LISTA DE USUARIOS */}
+      {/* MODAL 2: AÑADIR MÁQUINA */}
+      {modalVmOpen && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl p-6 w-full max-w-md animate-in fade-in zoom-in duration-200">
+            <h2 className="text-xl font-bold mb-6 text-white border-b border-zinc-800 pb-2">Desplegar VM</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase">Nombre del Host</label>
+                <input 
+                  type="text" 
+                  className="w-full border border-zinc-800 bg-black text-white rounded p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono text-sm" 
+                  placeholder="SRV-BACKEND-01"
+                  value={nuevaVm.nombre}
+                  onChange={e => setNuevaVm({...nuevaVm, nombre: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase">Dirección IP</label>
+                <input 
+                  type="text" 
+                  className="w-full border border-zinc-800 bg-black text-white rounded p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono text-sm" 
+                  placeholder="192.168.x.x"
+                  value={nuevaVm.ip}
+                  onChange={e => setNuevaVm({...nuevaVm, ip: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 mb-1 uppercase">Proyecto</label>
+                {!modoNuevoProyecto && proyectos.length > 0 ? (
+                  <select 
+                    className="cursor-pointer w-full border border-zinc-800 bg-black text-white rounded p-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-sans"
+                    value={nuevaVm.proyecto}
+                    onChange={(e) => {
+                      if (e.target.value === '__NUEVO__') {
+                        setModoNuevoProyecto(true);
+                        setNuevaVm({...nuevaVm, proyecto: ''});
+                      } else {
+                        setNuevaVm({...nuevaVm, proyecto: e.target.value});
+                      }
+                    }}
+                    style={{ fontFamily: 'inherit' }}
+                  >
+                    <option value="" className="bg-zinc-900 text-zinc-500">-- Seleccionar --</option>
+                    {proyectos.map(p => (
+                      <option key={p} value={p} className="bg-black text-white font-sans py-2">{p}</option>
+                    ))}
+                    <option value="__NUEVO__" className="text-blue-400 font-bold font-sans">+ Nuevo Proyecto</option>
+                  </select>
+                ) : (
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      className="w-full border border-zinc-800 bg-black text-white rounded p-2 focus:ring-1 focus:ring-blue-500 outline-none text-sm" 
+                      placeholder="Nombre del proyecto..."
+                      value={nuevaVm.proyecto}
+                      autoFocus
+                      onChange={e => setNuevaVm({...nuevaVm, proyecto: e.target.value})}
+                    />
+                    {proyectos.length > 0 && (
+                      <button 
+                        onClick={() => setModoNuevoProyecto(false)}
+                        className="cursor-pointer p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded"
+                        title="Volver"
+                      >
+                        <ArrowLeft size={18} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button onClick={() => setModalVmOpen(false)} className="cursor-pointer px-4 py-2 text-zinc-400 hover:text-white text-sm font-bold">CANCELAR</button>
+                <button onClick={crearVm} className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold hover:bg-blue-500">CREAR</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: LISTA DE USUARIOS (ACTUALIZADO CON BOTÓN BORRAR) */}
       {modalListaOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">👥 Equipo ({users.length})</h2>
-              <button onClick={() => setModalListaOpen(false)} className="p-1 hover:bg-gray-100 rounded-full"><XCircle /></button>
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-6 border-b border-zinc-800 pb-2">
+              <h2 className="text-xl font-bold text-white">Directorio de Equipo</h2>
+              <button onClick={() => setModalListaOpen(false)} className="cursor-pointer px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 rounded text-xs font-bold uppercase">Cerrar</button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {users.map(u => (
-                <div key={u.id} className="flex items-center gap-3 p-3 border rounded-lg bg-gray-50">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${u.color}`}>
+                <div key={u.id} className="flex items-center gap-3 p-3 border border-zinc-800 rounded bg-black/50 hover:border-zinc-700 transition-colors group">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm ${u.color}`}>
                     {u.nombre.charAt(0)}{u.apellido.charAt(0)}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-800">{u.nombre} {u.apellido}</p>
-                    <p className="text-xs text-gray-500">Miembro del equipo</p>
+                    <p className="font-bold text-zinc-200 text-sm">{u.nombre} {u.apellido}</p>
                   </div>
+                  
+                  {/* BOTÓN DE BORRAR (SOLO APARECE AL HACER HOVER O SIEMPRE VISIBLE PERO SUTIL) */}
+                  <button 
+                    onClick={() => eliminarUsuario(u.id, u.nombre)} 
+                    className="ml-auto cursor-pointer p-1.5 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
+                    title="Eliminar usuario"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
               ))}
             </div>
