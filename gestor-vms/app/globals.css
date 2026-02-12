@@ -1,5 +1,3 @@
-@import "tailwindcss";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,16 +18,23 @@ body {
     rgb(var(--background-start-rgb));
 }
 
-/* --- SOLUCIÓN PARA FIREFOX --- */
-/* Firefox ignora la fuente en los <option> a menos que se defina explícitamente así: */
+/* --- SOLUCIÓN DEFINITIVA PARA FUENTES --- */
 
-select, option {
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" !important;
+/* 1. Obligamos a todos los elementos de formulario a heredar la fuente Inter del body */
+input, textarea, select, button {
+  font-family: inherit !important;
 }
 
-/* Y para asegurar que el fondo sea negro en el desplegable de Firefox */
+/* 2. Refuerzo específico para el desplegable <select> */
+/* Usamos la variable --font-inter que creaste en layout.tsx */
+select {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* 3. Estilo para las opciones del desplegable (fondo oscuro y fuente correcta) */
 option {
-  background-color: #09090b; /* zinc-950 */
-  color: #e4e4e7; /* zinc-200 */
+  background-color: #09090b; /* zinc-950 para que no salga blanco */
+  color: #e4e4e7; /* texto claro */
   padding: 8px;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif !important;
 }
