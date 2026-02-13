@@ -71,9 +71,12 @@ export default function VmCard({ vm, users, queue, onUpdate }: VmCardProps) {
     onUpdate();
   };
 
+  // ESTILOS DINÁMICOS CON HOVER MEJORADO
   const cardStyle = usuarioActual
-    ? `bg-zinc-900 border-zinc-700 border-red-600 hover:shadow-[0_0_15px_rgba(220,38,38,0.15)]`
-    : 'bg-black border-zinc-800 border-emerald-900/50 hover:border-emerald-500/50 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)]';
+    // OCUPADA: Borde rojo base -> Borde rojo más brillante al hover
+    ? `bg-zinc-900 border-zinc-700 border-red-600 hover:border-red-900 hover:shadow-[0_0_15px_rgba(220,38,38,0.25)]`
+    // LIBRE: Borde gris base -> Borde verde al hover
+    : 'bg-black border-zinc-800 border-emerald-900/50 hover:border-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]';
 
   return (
     <div className={`border rounded-lg p-4 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 ${cardStyle}`}>
@@ -84,11 +87,9 @@ export default function VmCard({ vm, users, queue, onUpdate }: VmCardProps) {
           <h3 className="font-bold text-lg flex items-center gap-2 text-white tracking-wide">
             <Monitor size={18} className="text-zinc-500" /> {vm.nombre}
           </h3>
-          {/* ACCESIBILIDAD: Aclarado a zinc-400 para mejor contraste */}
           <p className="text-xs text-zinc-400 font-mono mt-1">{vm.ip}</p>
         </div>
         {usuarioActual ? (
-          // ACCESIBILIDAD: Texto cambiado a red-400 para mejor contraste sobre fondo red-950
           <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-red-950 text-red-400 border border-red-900/50 tracking-wider shadow-sm animate-pulse">
             Ocupado
           </span>
@@ -104,7 +105,6 @@ export default function VmCard({ vm, users, queue, onUpdate }: VmCardProps) {
         {usuarioActual ? (
           // ESTADO: OCUPADO
           <div className="bg-black/40 p-3 rounded border border-zinc-800 transition-colors duration-300">
-            {/* ACCESIBILIDAD: Aclarado a zinc-400 */}
             <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-2">Usuario</p>
             
             <div className="flex items-center justify-between">
@@ -141,7 +141,7 @@ export default function VmCard({ vm, users, queue, onUpdate }: VmCardProps) {
               onChange={(e) => setUsuarioSeleccionado(e.target.value)}
               value={usuarioSeleccionado}
               style={{ fontFamily: 'inherit' }}
-              aria-label="Seleccionar usuario para entrar" // ACCESIBILIDAD: Label añadido
+              aria-label="Seleccionar usuario para entrar"
             >
               <option value="" className="bg-black text-zinc-400">Selecciona usuario...</option>
               {users.map(u => (
@@ -163,7 +163,6 @@ export default function VmCard({ vm, users, queue, onUpdate }: VmCardProps) {
         {usuarioActual && (
           <div className="mt-3 pt-3 border-t border-zinc-800 border-dashed">
             <div className="flex justify-between items-center mb-2">
-              {/* ACCESIBILIDAD: Aclarado a zinc-500 */}
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">En espera</span>
               <div className="flex gap-1">
                  <select 
@@ -171,7 +170,7 @@ export default function VmCard({ vm, users, queue, onUpdate }: VmCardProps) {
                   onChange={(e) => setUsuarioSeleccionado(e.target.value)}
                   value={usuarioSeleccionado}
                   style={{ fontFamily: 'inherit' }}
-                  aria-label="Seleccionar usuario para cola" // ACCESIBILIDAD: Label añadido
+                  aria-label="Seleccionar usuario para cola"
                 >
                   <option value="" className="bg-black">Usuario...</option>
                   {users.map(u => (
@@ -195,7 +194,7 @@ export default function VmCard({ vm, users, queue, onUpdate }: VmCardProps) {
               <ul className="space-y-1">
                 {colaDeEstaVm.map((item, idx) => (
                   <li key={item.id} className="text-xs flex justify-between items-center bg-zinc-900/50 p-1.5 rounded border border-zinc-800 transition-colors duration-200 hover:bg-zinc-800">
-                    <span className="font-medium text-amber-500">
+                    <span className="font-medium text-blue-500">
                       {idx + 1}. {item.users?.nombre || 'Usuario'}
                     </span>
                     <button onClick={() => salirDeCola(item.id)} className="text-zinc-600 hover:text-red-400 cursor-pointer transition-colors duration-200" aria-label="Salir de la cola">×</button>
